@@ -85,20 +85,21 @@ GitHub Actions builds and publishes the gem to [rubygems.org](https://rubygems.o
 [RubyGems trusted publishing](https://guides.rubygems.org/trusted-publishing/), so no API
 key is stored in the repo and the gemspec can keep `rubygems_mfa_required`.
 
-1. Bump `VERSION` in `lib/omniauth-skubana/version.rb` and add a `CHANGELOG.md` section
-   for it, along with a link definition for the new heading at the bottom of that file.
-   Commit both on `master`.
+1. Add a `CHANGELOG.md` section for the new version, along with a link definition for the
+   new heading at the bottom of that file, and merge it to `master`. There is no version
+   to bump: the committed `VERSION` file is a `0.0.0` placeholder.
 2. Draft a new release with the target set to `master` and the tag set to the version
-   prefixed with `v` — `v0.2.0`, not `0.2.0`. The prefix is stripped before comparing
-   against `version.rb`; the gem version itself carries no `v`.
+   prefixed with `v` — `v0.3.0`, not `0.3.0`. The workflow strips the `v` and uses the
+   rest as the gem version.
 3. Click **Generate release notes** — the preferred method — then publish. The generated
    notes list the merged pull requests; `CHANGELOG.md` carries the curated prose and
    links back to each release.
 
 Publishing creates the tag, which fires the `Release` workflow: it reruns the full test
-matrix, refuses to continue if the tag and `version.rb` disagree, and pushes the gem.
-Note that RubyGems versions are immutable — a bad release can be yanked, never replaced,
-so the version bump has to be committed before the release is published.
+matrix, refuses to continue unless the tag looks like `vX.Y.Z`, writes the version into
+`VERSION` (and `Gemfile.lock`) in its own checkout, and pushes the gem. That change is
+never pushed back to the repo. Note that RubyGems versions are immutable — a bad release
+can be yanked, never replaced, so double-check the tag before publishing.
 
 ### One-time RubyGems setup
 
