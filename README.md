@@ -26,7 +26,7 @@ OmniAuth::Builder do
     provider :skubana,
               'app_key', 'app_secret',
               :callback_url => "http://www.example.com/auth/skubana/callback",                             
-              :scope => 'read_inventory+write_inventory'
+              :scope => 'read_inventory write_inventory'
 
 end
 ````
