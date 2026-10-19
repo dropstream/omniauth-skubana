@@ -1,8 +1,8 @@
 name: Release
 
-# Cut a release from the GitHub Releases UI: draft a release, set the tag to `vX.Y.Z`
-# (matching lib/omniauth-skubana/version.rb), and publish it. GitHub creates the tag,
-# which fires this workflow.
+# Cut a release from the GitHub Releases UI: draft a release, set the tag to `vX.Y.Z`,
+# and publish it. GitHub creates the tag, which fires this workflow. The gem version
+# comes from the tag, so nothing needs bumping in the repo first.
 on:
   release:
     types: [published]
@@ -43,20 +43,27 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
-      # `rake release` builds whatever version.rb says, regardless of the tag. If the
-      # two disagree it would publish one version under another version's release, so
-      # stop here first.
-      - name: Verify the release tag matches the gem version
+      # The committed VERSION is a 0.0.0 placeholder; the tag, minus its `v`, is the
+      # gem version.
+      - name: Write VERSION from the release tag
         env:
           TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          gem_version="$(ruby -r./lib/omniauth-skubana/version -e 'print OmniAuth::Skubana::VERSION')"
-          tag_version="${TAG_NAME#v}"
-          if [ "$gem_version" != "$tag_version" ]; then
-            echo "::error::Release tag ${TAG_NAME} does not match lib/omniauth-skubana/version.rb (${gem_version})."
+          version="${TAG_NAME#v}"
+          if ! [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Release tag ${TAG_NAME} is not of the form vX.Y.Z."
             exit 1
           fi
-          echo "Releasing omniauth-skubana ${gem_version}"
+          echo "$version" > VERSION
+          # Gemfile.lock records this gem's own version, and setup-ruby leaves Bundler in
+          # deployment (frozen) mode, which refuses to run against a stale lockfile.
+          BUNDLE_DEPLOYMENT=false BUNDLE_FROZEN=false bundle lock --local
+          # `rake release` refuses to run with uncommitted changes. This commit stays
+          # local: the release tag already exists, so `rake release` skips pushing.
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit --quiet -m "Release ${TAG_NAME}" VERSION Gemfile.lock
+          echo "Releasing omniauth-skubana ${version}"
 
       # Builds the gem and runs `gem push` against the gemspec's allowed_push_host.
       - name: Push to RubyGems.org

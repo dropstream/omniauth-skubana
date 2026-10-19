@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [Unreleased]
+
+### Changed
+
+- The gem version now comes from the release tag. `lib/omniauth-skubana/version.rb` reads
+  a top-level `VERSION` file, committed as a `0.0.0` placeholder, which the release
+  workflow writes from the tag with its leading `v` stripped.
+
 ## [0.2.0] - 2026-10-19
 
 ### Changed
@@ -47,6 +55,7 @@ All notable changes to this project are documented in this file.
 
 - Initial published strategy.
 
+[Unreleased]: https://github.com/dropstream/omniauth-skubana/compare/v0.2.0...master
 [0.2.0]: https://github.com/dropstream/omniauth-skubana/releases/tag/v0.2.0
 [0.1.2]: https://rubygems.org/gems/omniauth-skubana/versions/0.1.2
 [0.1.0]: https://rubygems.org/gems/omniauth-skubana/versions/0.1.0
