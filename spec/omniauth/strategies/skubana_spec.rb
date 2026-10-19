@@ -23,6 +23,30 @@ describe OmniAuth::Strategies::Skubana do
       expect(subject.token_url).to eq('/oauth/token')
     end
   end
+
+  describe "#callback_url" do
+    def strategy_for(url, options = {}, script_name: '')
+      instance = described_class.new(app, 'app_key', 'app_secret', options)
+      instance.instance_variable_set(:@env, Rack::MockRequest.env_for(url, 'SCRIPT_NAME' => script_name))
+      instance
+    end
+
+    it 'uses the configured callback_url' do
+      instance = strategy_for('https://example.org/auth/skubana?type=shopping',
+                              { callback_url: 'https://app.example.com/auth/skubana/callback' })
+      expect(instance.callback_url).to eq('https://app.example.com/auth/skubana/callback')
+    end
+
+    it 'drops the request query string when no callback_url is configured' do
+      instance = strategy_for('https://example.org/auth/skubana?type=shopping')
+      expect(instance.callback_url).to eq('https://example.org/auth/skubana/callback')
+    end
+
+    it 'includes the mount prefix only once' do
+      instance = strategy_for('https://example.org/users/auth/skubana?type=shopping', script_name: '/users')
+      expect(instance.callback_url).to eq('https://example.org/users/auth/skubana/callback')
+    end
+  end
 =begin
   describe "#authorize_params" do
     subject { fresh_strategy }
