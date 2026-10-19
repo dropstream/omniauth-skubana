@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require 'omniauth-oauth2'
-require 'base64'
 
 module OmniAuth
   module Strategies
@@ -8,11 +9,15 @@ module OmniAuth
       option :client_options, {
         :authorize_url => '/oauth/authorize',
         :token_url => '/oauth/token',
-        :site => 'https://app.skubana.com'
+        :site => 'https://app.skubana.com',
+        # Skubana expects the client credentials as HTTP Basic auth on the token
+        # request. Pinned so it doesn't depend on the oauth2 version's default
+        # (oauth2 1.x defaulted to :request_body).
+        :auth_scheme => :basic_auth
       }
 
       option :callback_url
-      
+
       option :provider_ignores_state, true
 
       # OmniAuth::Strategy#callback_url appends the callback request's own query
@@ -23,19 +28,6 @@ module OmniAuth
       def callback_url
         options[:callback_url] || (full_host + callback_path)
       end
-
-      protected 
-
-      def build_access_token
-        options.token_params.merge!(:headers => {'Authorization' => basic_auth_header })
-        super
-      end
-      
-      private
-
-      def basic_auth_header
-        "Basic " + Base64.strict_encode64("#{options[:client_id]}:#{options[:client_secret]}")
-      end      
     end
   end
 end

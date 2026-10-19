@@ -1,33 +1,37 @@
-# coding: utf-8
-lib = File.expand_path('../lib', __FILE__)
+# frozen_string_literal: true
+
+lib = File.expand_path("lib", __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'omniauth-skubana/version'
+require "omniauth-skubana/version"
 
 Gem::Specification.new do |spec|
   spec.name          = "omniauth-skubana"
   spec.version       = OmniAuth::Skubana::VERSION
   spec.authors       = ["Karl Falconer"]
-  spec.email         = ["karl.falconer@falconerdevelopment.com"]
+  spec.email         = ["karl.falconer@getdropstream.com"]
 
-  spec.summary       = %q{OmniAuth strategy for Skubana}
-  spec.description   = %q{In this gem you will find an OmniAuth Skubana strategy.}
+  spec.summary       = "OmniAuth strategy for Skubana"
+  spec.description   = "In this gem you will find an OmniAuth Skubana strategy."
   spec.homepage      = "https://github.com/dropstream/omniauth-skubana"
+  spec.license       = "MIT"
 
-  # Prevent pushing this gem to RubyGems.org by setting 'allowed_push_host', or
-  # delete this section to allow pushing this gem to any host.
-  if spec.respond_to?(:metadata)
-    spec.metadata['allowed_push_host'] = "https://rubygems.org"
-  else
-    raise "RubyGems 2.0 or newer is required to protect against public gem pushes."
+  spec.required_ruby_version = ">= 3.2"
+
+  spec.metadata["allowed_push_host"] = "https://rubygems.org"
+  spec.metadata["homepage_uri"]      = spec.homepage
+  spec.metadata["source_code_uri"]   = spec.homepage
+  spec.metadata["changelog_uri"]     = "#{spec.homepage}/blob/master/CHANGELOG.md"
+  spec.metadata["rubygems_mfa_required"] = "true"
+
+  # Ship only the library itself; development scaffolding stays out of the gem.
+  spec.files = Dir.chdir(__dir__) do
+    `git ls-files -z`.split("\x0").reject do |f|
+      f.match(%r{\A(?:spec|bin|pkg|\.github)/}) ||
+        f.match(%r{\A(?:\.gitignore|\.rspec|\.ruby-version|\.ruby-gemset|Gemfile|Gemfile\.lock|Rakefile)\z})
+    end
   end
-
-  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  spec.bindir        = "exe"
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  spec.add_runtime_dependency 'omniauth-oauth2'
-
-  spec.add_development_dependency "rake", "~> 13.3"
-  spec.add_development_dependency "rspec"
+  spec.add_dependency "omniauth", "~> 2.0"
+  spec.add_dependency "omniauth-oauth2", ">= 1.8", "< 2"
 end
