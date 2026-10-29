@@ -77,8 +77,7 @@ RSpec.describe OmniAuth::Strategies::Skubana do
   end
 
   describe "the callback phase" do
-    # provider_ignores_state is set, so the callback needs no session state.
-    let(:session) { {} }
+    let(:session) { {"omniauth.state" => "abc123"} }
     let(:token_url) { "#{strategy.options.client_options[:site]}/oauth/token" }
 
     before do
@@ -89,9 +88,9 @@ RSpec.describe OmniAuth::Strategies::Skubana do
       )
     end
 
-    def complete_callback(query = "", env = {})
+    def complete_callback(query = "", env = {}, state: "abc123")
       post "/auth/skubana/callback#{query}",
-           {"code" => "auth_code"},
+           {"code" => "auth_code", "state" => state},
            {"rack.session" => session}.merge(env)
     end
 
@@ -125,7 +124,7 @@ RSpec.describe OmniAuth::Strategies::Skubana do
     end
 
     it "keeps the mount point in the redirect_uri only once" do
-      complete_callback("", "SCRIPT_NAME" => "/users")
+      complete_callback("", {"SCRIPT_NAME" => "/users"})
 
       expect(token_request_body["redirect_uri"]).to eq("http://example.org/users/auth/skubana/callback")
     end
@@ -136,6 +135,71 @@ RSpec.describe OmniAuth::Strategies::Skubana do
       credentials = last_request.env["omniauth.auth"]["credentials"]
       expect(credentials["token"]).to eq("token123")
       expect(credentials["expires"]).to be(false)
+    end
+
+    # Skubana redirects an App Store install to the registered URI with only
+    # `cid` and `code`; there is no request phase, so no state.
+    # Skubana redirects an App Store install to the registered URI with only
+    # `cid` and `code`; there is no request phase, so no state.
+    describe "an App Store install" do
+      let(:session) { {} }
+
+      around do |example|
+        previous = OmniAuth.config.on_failure
+        OmniAuth.config.on_failure = ->(env) { [401, {}, [env["omniauth.error.type"].to_s]] }
+        example.run
+        OmniAuth.config.on_failure = previous
+      end
+
+      def complete_install(params = {"cid" => "Y29tcGFueUlkMQ==", "code" => "auth_code"}, path: "/auth/skubana/callback")
+        get path, params, "rack.session" => session
+      end
+
+      it "is rejected by default" do
+        complete_install
+
+        expect(last_response.body).to eq("csrf_detected")
+        expect(WebMock).not_to have_requested(:post, token_url)
+      end
+
+      context "on a provider registered with app_store_install" do
+        let(:strategy_options) { {app_store_install: true, callback_path: "/apps/skubana/install"} }
+
+        def complete_install(params = {"cid" => "Y29tcGFueUlkMQ==", "code" => "auth_code"})
+          super(params, path: "/apps/skubana/install")
+        end
+
+        it "exchanges the code with the cid appended to the redirect_uri" do
+          complete_install
+
+          expect(token_request_body["redirect_uri"])
+            .to eq("http://example.org/apps/skubana/install?cid=Y29tcGFueUlkMQ==")
+          expect(last_request.env["omniauth.auth"]["credentials"]["token"]).to eq("token123")
+        end
+
+        it "appends the cid to a configured callback_url" do
+          strategy_options[:callback_url] = "https://app.example.com/apps/skubana/install"
+          complete_install
+
+          expect(token_request_body["redirect_uri"])
+            .to eq("https://app.example.com/apps/skubana/install?cid=Y29tcGFueUlkMQ==")
+        end
+
+        it "still checks a state that is present" do
+          session["omniauth.state"] = "abc123"
+          complete_install({"cid" => "Y29tcGFueUlkMQ==", "code" => "auth_code", "state" => "forged"})
+
+          expect(last_response.body).to eq("csrf_detected")
+          expect(WebMock).not_to have_requested(:post, token_url)
+        end
+
+        it "still rejects a callback with neither state nor cid" do
+          complete_install({"code" => "auth_code"})
+
+          expect(last_response.body).to eq("csrf_detected")
+          expect(WebMock).not_to have_requested(:post, token_url)
+        end
+      end
     end
 
     context "when configured for another site" do

@@ -64,6 +64,31 @@ otherwise append, because Skubana rejects a `redirect_uri` that does not match t
 registered one exactly. Pass `callback_url` to override it outright; otherwise it is
 derived from the request, including the mount prefix.
 
+### App Store installs
+
+An install from Skubana's App Store doesn't go through the request phase: Skubana
+redirects straight to the callback URI registered for the app with `?cid=...&code=...`,
+and no `state`. The code is bound to that registered URI, and must be exchanged with
+`redirect_uri=<registered URI>?cid=<cid>`.
+
+To accept App Store installs, register the strategy a second time, under its own name,
+with its callback at the registered URI and `app_store_install` set:
+
+```ruby
+  provider :skubana, 'app_key', 'app_secret',
+           :name => 'skubana_app_store',
+           :callback_path => '/apps/skubana/install',
+           :callback_url => 'https://www.example.com/apps/skubana/install',
+           :request_path => ->(_env) { false },
+           :app_store_install => true
+```
+
+On that provider, a callback that carries a `cid` and no `state` skips OmniAuth's CSRF
+state check and is exchanged with the `cid` appended. Any other callback is checked as
+usual. Note what accepting installs gives up: anyone can send a signed-in user to that
+URI with a `cid` and `code` of their own, and the user's account gets connected to that
+Skubana account.
+
 ### Client credentials in the token request
 
 `client_options[:auth_scheme]` is pinned to `:basic_auth`, because Skubana expects the
