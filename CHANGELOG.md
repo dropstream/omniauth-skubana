@@ -6,9 +6,20 @@ All notable changes to this project are documented in this file.
 
 ### Changed
 
+- **Breaking:** the OAuth `state` check is enforced. The strategy no longer sets
+  `provider_ignores_state`, so a callback whose `state` is missing or doesn't match the
+  session fails with `csrf_detected`. App Store installs need `app_store_install`.
 - The gem version now comes from the release tag. `lib/omniauth-skubana/version.rb` reads
   a top-level `VERSION` file, committed as a `0.0.0` placeholder, which the release
   workflow writes from the tag with its leading `v` stripped.
+
+### Added
+
+- `app_store_install` option, for a provider registered with its callback at the URI
+  registered for the app with Skubana. An App Store install arrives there with `cid` and
+  `code` but no `state`: such callbacks skip the state check and exchange the code with
+  `redirect_uri=<callback URL>?cid=<cid>`, as Skubana requires. Previously such codes
+  failed with `invalid_grant`.
 
 ## [0.2.0] - 2026-10-19
 
