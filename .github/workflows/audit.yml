@@ -22,7 +22,9 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          # Newer runner images only build the latest patch of each series, so pinning
+          # .ruby-version's exact patch here breaks whenever a new one ships.
+          ruby-version: "3.4"
           bundler-cache: true
 
       - name: Check for vulnerable dependencies
